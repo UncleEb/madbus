@@ -227,12 +227,6 @@ Their shared contract is the Madbus REST API and the normalized telemetry schema
 
 ---
 
-# License
-
-Will use MIT license.
-
----
-
 # Status
 
 Madbus is in active development.
