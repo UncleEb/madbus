@@ -1,0 +1,21 @@
+{
+  "http_addr": ":8090",
+  "poll_interval_seconds": 5,
+  "profiles_dir": "profiles",
+  "debug": true,
+  "devices": [
+    {
+      "id": "meter-1",
+      "name": "Main Energy Meter",
+      "profile": "generic-meter",
+      "unit_id": 1,
+      "serial": {
+        "port": "/dev/ttyUSB0",
+        "baud": 9600,
+        "data_bits": 8,
+        "parity": "none",
+        "stop_bits": 1
+      }
+    }
+  ]
+}

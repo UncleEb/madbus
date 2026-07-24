@@ -1,0 +1,6 @@
+/madbus
+*.db
+*.db-shm
+*.db-wal
+config.local.json
+.claude/
