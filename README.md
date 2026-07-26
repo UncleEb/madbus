@@ -172,7 +172,7 @@ This provides the easiest installation for users already running self-hosted ser
 
 A standalone executable will be provided for users who prefer not to use Docker.
 
-No external database server is required.
+No database is required. Configuration and device profiles are plain JSON files, and current readings are held in memory — Madbus stores only each device's last-online time across restarts.
 
 ## Madbus OS (Long-Term Goal)
 
@@ -200,9 +200,11 @@ Web Interface
 * CSS
 * JavaScript
 
-Database
+Storage
 
-* SQLite
+* JSON files for configuration and device profiles
+* Current readings held in memory (no historical telemetry — that is Sola's role)
+* No database
 
 Deployment
 

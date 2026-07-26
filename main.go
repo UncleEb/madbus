@@ -1,11 +1,12 @@
 // Command madbus reads normalized telemetry from RS-485 / Modbus RTU devices
 // and serves it over the v1 REST API (see docs/api.md).
 //
-// This is an early skeleton: the poll loop reads each configured device on an
-// interval, logs the raw + decoded feed to the terminal (when debug is on), and
-// keeps the latest reading in memory for the API. A device whose serial port is
-// "mock" produces synthetic readings so the whole pipeline can run without
-// hardware.
+// The poll loop reads each configured device on an interval, logs the raw +
+// decoded feed to the terminal (when debug is on), and keeps the latest reading
+// in memory for the API. Readings are not persisted (there is no database);
+// the only state that survives a restart is each device's last-online time,
+// written to last_seen.json. A device whose serial port is "mock" produces
+// synthetic readings so the whole pipeline can run without hardware.
 package main
 
 import (
@@ -17,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -25,8 +27,17 @@ import (
 	"madbus/internal/config"
 	"madbus/internal/profile"
 	"madbus/internal/rtu"
+	"madbus/internal/state"
 	"madbus/internal/telemetry"
 )
+
+// stateFlushInterval bounds how often last_seen.json is rewritten while device
+// timestamps are advancing — a modest cadence to limit flash wear on a Pi. A
+// final flush also runs on clean shutdown.
+const stateFlushInterval = 60 * time.Second
+
+// lastSeenFile is the state file name, kept alongside the config file.
+const lastSeenFile = "last_seen.json"
 
 func main() {
 	if err := run(); err != nil {
@@ -71,6 +82,32 @@ func run() error {
 		return err
 	}
 
+	// Restore per-device last-online timestamps so a just-restarted Madbus can
+	// report when each device was last reachable, before the first poll.
+	statePath := filepath.Join(filepath.Dir(*configPath), lastSeenFile)
+	if seen, err := state.Load(statePath); err != nil {
+		slog.Warn("could not load last-seen state", "path", statePath, "err", err)
+	} else if len(seen) > 0 {
+		store.SeedLastOnline(seen)
+		slog.Info("last-seen state restored", "devices", len(seen), "path", statePath)
+	}
+
+	// flush persists last-online timestamps only when they've changed since the
+	// previous write, so a steady poll loop writes at most once per tick.
+	lastWritten := store.LastOnline()
+	flush := func(reason string) {
+		current := store.LastOnline()
+		if sameTimes(current, lastWritten) {
+			return
+		}
+		if err := state.Save(statePath, current); err != nil {
+			slog.Warn("could not write last-seen state", "path", statePath, "err", err)
+			return
+		}
+		lastWritten = current
+		slog.Debug("last-seen state persisted", "reason", reason, "devices", len(current))
+	}
+
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: api.NewServer(store).Handler()}
 	go func() {
 		slog.Info("http listening", "addr", cfg.HTTPAddr)
@@ -86,6 +123,9 @@ func run() error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	stateTicker := time.NewTicker(stateFlushInterval)
+	defer stateTicker.Stop()
+
 	slog.Info("madbus started", "devices", len(devices), "poll_interval", interval.String())
 
 	pollAll(devices, store)
@@ -93,6 +133,7 @@ func run() error {
 		select {
 		case <-ctx.Done():
 			slog.Info("shutting down")
+			flush("shutdown")
 			shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			_ = srv.Shutdown(shutCtx)
 			cancel()
@@ -102,8 +143,23 @@ func run() error {
 			return nil
 		case <-ticker.C:
 			pollAll(devices, store)
+		case <-stateTicker.C:
+			flush("interval")
 		}
 	}
+}
+
+// sameTimes reports whether two last-online maps are identical.
+func sameTimes(a, b map[string]time.Time) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for id, t := range a {
+		if other, ok := b[id]; !ok || !other.Equal(t) {
+			return false
+		}
+	}
+	return true
 }
 
 // buildDevices resolves profiles, registers devices in the store, and creates

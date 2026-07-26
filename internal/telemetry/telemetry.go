@@ -83,6 +83,38 @@ func (s *Store) RecordFailure(id string) {
 	}
 }
 
+// LastOnline returns each device's last successful-read time. Devices never
+// read successfully (zero time) are omitted. This is the only state Madbus
+// persists across restarts.
+func (s *Store) LastOnline() map[string]time.Time {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make(map[string]time.Time)
+	for id, d := range s.devices {
+		if !d.LastRead.IsZero() {
+			out[id] = d.LastRead
+		}
+	}
+	return out
+}
+
+// SeedLastOnline restores persisted last-online timestamps into already-
+// registered devices, without marking them online. It never moves a device's
+// LastRead backwards, so a fresh live poll always wins over stale disk state.
+func (s *Store) SeedLastOnline(seen map[string]time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id, t := range seen {
+		d, ok := s.devices[id]
+		if !ok {
+			continue
+		}
+		if d.LastRead.Before(t) {
+			d.LastRead = t
+		}
+	}
+}
+
 // Snapshot returns deep copies of all devices in registration order.
 func (s *Store) Snapshot() []DeviceState {
 	s.mu.RLock()

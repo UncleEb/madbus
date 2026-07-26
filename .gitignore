@@ -3,4 +3,5 @@
 *.db-shm
 *.db-wal
 config.local.json
+last_seen.json
 .claude/
