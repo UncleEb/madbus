@@ -2,7 +2,7 @@
   "http_addr": ":8090",
   "poll_interval_seconds": 5,
   "profiles_dir": "profiles",
-  "debug": true,
+  "debug": false,
   "devices": [
     {
       "id": "meter-1",

@@ -46,7 +46,7 @@ func Default() *Config {
 		HTTPAddr:            ":8090",
 		PollIntervalSeconds: 5,
 		ProfilesDir:         "profiles",
-		Debug:               true,
+		Debug:               false,
 		Devices: []Device{{
 			ID:      "meter-1",
 			Name:    "Main Energy Meter",

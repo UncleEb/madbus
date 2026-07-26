@@ -119,25 +119,22 @@ Profiles can be created through the web interface without modifying source code.
 
 # REST API
 
-Madbus exposes normalized telemetry through a versioned REST API.
+Madbus exposes normalized telemetry through a versioned REST API under `/api/v1`. All responses are JSON. Clients never register, subscribe, or hold connections — they simply request the latest values.
 
-Example endpoints:
+| Method & path | Description |
+| --- | --- |
+| `GET /api/v1/health` | Liveness, uptime, and device count. |
+| `GET /api/v1/devices` | List configured devices with online status and last-online time. |
+| `GET /api/v1/devices/{id}/measurements` | Current normalized measurements for one device. |
+| `POST /api/v1/measurements` | Batch read — request a set of devices (optionally narrowed to specific metrics) and receive their current values in one response. This is the primary endpoint for polling clients such as Sola. |
 
+Each measurement is self-describing, carrying its own unit:
+
+```json
+{ "ac.power": { "value": 1832.0, "unit": "W" } }
 ```
-GET /api/v1/devices
 
-GET /api/v1/devices/{id}
-
-GET /api/v1/devices/{id}/measurements
-
-GET /api/v1/health
-```
-
-Responses are JSON and intended to be simple to consume from any language or platform.
-
-Madbus does not require clients to register, subscribe, or maintain persistent connections.
-
-Clients simply request the latest available data.
+The full contract — request/response shapes, the batch selector format, offline/stale semantics, and the normalized metric vocabulary — is documented in [docs/api.md](docs/api.md).
 
 ---
 

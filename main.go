@@ -129,6 +129,13 @@ func run() error {
 	slog.Info("madbus started", "devices", len(devices), "poll_interval", interval.String())
 
 	pollAll(devices, store)
+	online := 0
+	for _, d := range store.Snapshot() {
+		if d.Online {
+			online++
+		}
+	}
+	slog.Info("initial poll complete", "online", online, "total", len(devices))
 	for {
 		select {
 		case <-ctx.Done():
@@ -207,6 +214,9 @@ func buildDevices(cfg *config.Config, profiles map[string]*profile.Profile, stor
 
 func pollAll(devices []device, store *telemetry.Store) {
 	for _, d := range devices {
+		prev, _ := store.Get(d.cfg.ID)
+		wasOnline := prev.Online
+
 		var (
 			samples []rtu.Sample
 			err     error
@@ -218,7 +228,11 @@ func pollAll(devices []device, store *telemetry.Store) {
 		}
 		if err != nil {
 			store.RecordFailure(d.cfg.ID)
-			slog.Warn("device read failed", "device", d.cfg.ID, "err", err)
+			// Steady-state failures are quiet; only the online->offline edge is
+			// worth an operator's attention.
+			if wasOnline {
+				slog.Warn("device went offline", "device", d.cfg.ID, "err", err)
+			}
 			continue
 		}
 
@@ -226,8 +240,7 @@ func pollAll(devices []device, store *telemetry.Store) {
 		for _, sample := range samples {
 			value := sample.Value
 			metrics[sample.Metric] = telemetry.Measurement{Value: &value, Unit: sample.Unit}
-			// The raw+decoded feed: this is what you watch on the terminal once
-			// the meter is wired up (debug mode).
+			// Raw + decoded per-metric feed, emitted only when debug is enabled.
 			slog.Debug("reading",
 				"device", d.cfg.ID,
 				"metric", sample.Metric,
@@ -237,7 +250,9 @@ func pollAll(devices []device, store *telemetry.Store) {
 			)
 		}
 		store.RecordSuccess(d.cfg.ID, time.Now().UTC(), metrics)
-		slog.Info("device polled", "device", d.cfg.ID, "online", true, "metrics", len(metrics))
+		if !wasOnline {
+			slog.Info("device online", "device", d.cfg.ID, "metrics", len(metrics))
+		}
 	}
 }
 
