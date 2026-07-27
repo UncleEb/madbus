@@ -69,6 +69,12 @@ func (s *Store) RecordSuccess(id string, readAt time.Time, metrics map[string]Me
 
 // RecordFailure marks a device offline and flags its last-known values stale.
 // Values are retained so a dropped link doesn't blank the device.
+//
+// TODO(diagnostics): also retain the failure REASON (e.g. ensureOpen's
+// "open serial /dev/ttyUSB0: permission denied") and expose it via the API +
+// web UI, so an offline device isn't a silent mystery. The #1 real-world cause
+// is the Madbus user not being in the `dialout` group. See TODO.md and the
+// README "Serial Port Access (Linux)" section.
 func (s *Store) RecordFailure(id string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

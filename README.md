@@ -76,6 +76,37 @@ Madbus is protocol-agnostic internally. Protocol drivers simply provide data to 
 
 ---
 
+# Serial Port Access (Linux)
+
+Madbus talks to RS-485 hardware through a USB serial adapter (e.g. `/dev/ttyUSB0`). On Linux these device nodes are owned by `root:dialout` with `0660` permissions, so a normal user **cannot open the port unless they are in the `dialout` group.**
+
+This is the most common first-run problem, and it's easy to misread: Madbus starts and serves its API normally, but every device shows `online: false` because each read fails with *permission denied* on the serial port. The config, profile, and wiring can all be correct — the process simply can't open the port. (Running once under `sudo` will appear to work, which makes the group issue easy to miss later.)
+
+**Fix (native / standalone):** add your user to the `dialout` group, then start a session that has it — no reboot required:
+
+```bash
+sudo usermod -aG dialout "$USER"
+# Group membership only applies to NEW login sessions. Either log out and back
+# in, or activate it in the current shell without logging out:
+newgrp dialout
+./madbus
+```
+
+Confirm with `id` (you should see `dialout` in the group list), or simply that devices now report `online: true`.
+
+**Docker:** pass the adapter into the container and grant the group in `docker-compose.yml`:
+
+```yaml
+devices:
+  - "/dev/ttyUSB0:/dev/ttyUSB0"
+group_add:
+  - dialout        # or the numeric GID of the host's dialout group
+```
+
+> The adapter may enumerate as `/dev/ttyUSB1` (etc.) if other USB-serial devices are present. Confirm the path with `ls -l /dev/ttyUSB*` (or `dmesg | grep ttyUSB`) and set it in the device's serial config.
+
+---
+
 # Normalization
 
 Madbus does **not** expose raw device registers as its primary interface.
