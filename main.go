@@ -227,11 +227,14 @@ func pollAll(devices []device, store *telemetry.Store) {
 			samples, err = d.bus.Read(d.cfg.UnitID, d.prof)
 		}
 		if err != nil {
-			store.RecordFailure(d.cfg.ID)
-			// Steady-state failures are quiet; only the online->offline edge is
-			// worth an operator's attention.
-			if wasOnline {
-				slog.Warn("device went offline", "device", d.cfg.ID, "err", err)
+			reason := err.Error()
+			store.RecordFailure(d.cfg.ID, reason)
+			// Announce the offline edge — coming from online, the first failure,
+			// or a changed reason — with the cause, then retry quietly. This is
+			// what makes "device unplugged / not connected yet" visible instead
+			// of a silent offline device.
+			if wasOnline || prev.LastError != reason {
+				slog.Warn("device offline", "device", d.cfg.ID, "err", reason)
 			}
 			continue
 		}

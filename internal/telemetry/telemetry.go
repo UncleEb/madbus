@@ -19,13 +19,14 @@ type Measurement struct {
 
 // DeviceState is the current known state of one device.
 type DeviceState struct {
-	ID       string
-	Name     string
-	Profile  string
-	Category string
-	Online   bool
-	LastRead time.Time // zero if never read successfully
-	Metrics  map[string]Measurement
+	ID        string
+	Name      string
+	Profile   string
+	Category  string
+	Online    bool
+	LastError string    // reason the device is offline; "" when online
+	LastRead  time.Time // zero if never read successfully
+	Metrics   map[string]Measurement
 }
 
 // Store is a concurrency-safe map of device state.
@@ -65,19 +66,16 @@ func (s *Store) RecordSuccess(id string, readAt time.Time, metrics map[string]Me
 		return
 	}
 	d.Online = true
+	d.LastError = ""
 	d.LastRead = readAt
 	d.Metrics = metrics
 }
 
-// RecordFailure marks a device offline and flags its last-known values stale.
-// Values are retained so a dropped link doesn't blank the device.
-//
-// TODO(diagnostics): also retain the failure REASON (e.g. ensureOpen's
-// "open serial /dev/ttyUSB0: permission denied") and expose it via the API +
-// web UI, so an offline device isn't a silent mystery. The #1 real-world cause
-// is the Madbus user not being in the `dialout` group. See TODO.md and the
-// README "Serial Port Access (Linux)" section.
-func (s *Store) RecordFailure(id string) {
+// RecordFailure marks a device offline with the reason, and flags its last-known
+// values stale. Values are retained so a dropped link doesn't blank the device.
+// The reason (e.g. "open serial /dev/ttyUSB0: permission denied") is surfaced via
+// the API so an offline device isn't a silent mystery.
+func (s *Store) RecordFailure(id, reason string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	d, ok := s.devices[id]
@@ -85,6 +83,7 @@ func (s *Store) RecordFailure(id string) {
 		return
 	}
 	d.Online = false
+	d.LastError = reason
 	for k, m := range d.Metrics {
 		m.Stale = true
 		d.Metrics[k] = m

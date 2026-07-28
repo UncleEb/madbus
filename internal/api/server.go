@@ -39,12 +39,13 @@ type measurementDTO struct {
 }
 
 type deviceDTO struct {
-	ID       string  `json:"id"`
-	Name     string  `json:"name"`
-	Profile  string  `json:"profile"`
-	Category string  `json:"category"`
-	Online   bool    `json:"online"`
-	LastRead *string `json:"last_read"`
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	Profile   string  `json:"profile"`
+	Category  string  `json:"category"`
+	Online    bool    `json:"online"`
+	LastError string  `json:"last_error,omitempty"`
+	LastRead  *string `json:"last_read"`
 }
 
 type deviceMeasurements struct {
@@ -187,12 +188,13 @@ func toDeviceDTO(d telemetry.DeviceState) deviceDTO {
 		lastRead = &s
 	}
 	return deviceDTO{
-		ID:       d.ID,
-		Name:     d.Name,
-		Profile:  d.Profile,
-		Category: d.Category,
-		Online:   d.Online,
-		LastRead: lastRead,
+		ID:        d.ID,
+		Name:      d.Name,
+		Profile:   d.Profile,
+		Category:  d.Category,
+		Online:    d.Online,
+		LastError: d.LastError,
+		LastRead:  lastRead,
 	}
 }
 

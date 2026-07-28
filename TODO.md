@@ -14,15 +14,20 @@ section documents the `dialout` workaround, but Madbus itself should say so).
 
 **To do:**
 
-- Retain the last read/open error per device (reason string + timestamp) instead
-  of dropping it in `RecordFailure`.
-- Expose it via the API — e.g. a `last_error` field on the device object and/or a
-  diagnostics section on `GET /api/v1/health`.
+- [x] Retain the last read/open error per device in `RecordFailure`
+  (`DeviceState.LastError`). — done 2026-07-27.
+- [x] Expose it via the API — `last_error` on the device object (omitted when
+  online). — done 2026-07-27.
+- [x] Log the offline edge with its reason (first failure, recovery, or changed
+  reason) so a disconnected/never-connected device is visible in the terminal
+  instead of silent, then retries quietly. — done 2026-07-27. (Reconnection
+  itself already worked — verified: a device connected after startup comes online
+  within a poll.)
 - **Web UI (not yet built) — the important one:** when a user opens the Madbus
   page and a device is offline because of a port-open/permission error, show a
   clear, prominent diagnostic (e.g. *"Cannot open /dev/ttyUSB0: permission denied
   — add the Madbus user to the `dialout` group"*) with the fix, rather than a
-  silent offline state. This is the moment the problem should be caught.
+  silent offline state. `last_error` now carries exactly this text.
 - Consider a startup self-check that loudly logs/flags an unreadable serial port
   (permission denied vs. no such device vs. busy) so it's obvious even before the
   web UI exists.

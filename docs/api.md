@@ -71,6 +71,7 @@ Returned wherever a device appears:
 | `profile`   | The device profile driving normalization for this device. |
 | `category`  | The device class: `meter`, `charge_controller`, `shunt`, `inverter`, or `bms`. Consumers use this to choose how to render the device. See [device-categories.md](device-categories.md). |
 | `online`    | `true` if the most recent poll of this device succeeded. |
+| `last_error`| Present only when offline: why the last poll failed (e.g. `open serial /dev/ttyUSB0: permission denied`). Omitted when `online`. |
 | `last_read` | Timestamp of the last **successful** read. When `online` is `false`, this shows the age of any last-known values. |
 
 An offline device is never dropped from a response — it returns with `online:
