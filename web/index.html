@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Madbus</title>
+  <link rel="icon" href="/logo.svg">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img class="brand-mark" src="/logo.svg" alt="" width="40" height="40">
+      <span class="brand-name">MADBUS</span>
+    </a>
+    <nav class="nav">
+      <a class="nav-link" href="#" data-nav="settings">Settings</a>
+    </nav>
+  </header>
+
+  <main class="content">
+    <div id="banner" class="banner" hidden></div>
+    <section>
+      <h1 class="section-title">Devices</h1>
+      <div id="device-list" class="device-list"></div>
+      <p id="empty" class="empty" hidden>No devices registered yet.</p>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -11,6 +11,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -30,6 +31,11 @@ import (
 	"madbus/internal/state"
 	"madbus/internal/telemetry"
 )
+
+// webFS holds the embedded web UI (served at /).
+//
+//go:embed web
+var webFS embed.FS
 
 // stateFlushInterval bounds how often last_seen.json is rewritten while device
 // timestamps are advancing — a modest cadence to limit flash wear on a Pi. A
@@ -108,7 +114,7 @@ func run() error {
 		slog.Debug("last-seen state persisted", "reason", reason, "devices", len(current))
 	}
 
-	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: api.NewServer(store).Handler()}
+	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: api.NewServer(store, webFS).Handler()}
 	go func() {
 		slog.Info("http listening", "addr", cfg.HTTPAddr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

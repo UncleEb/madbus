@@ -5,6 +5,7 @@ package api
 import (
 	"encoding/json"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"time"
@@ -15,10 +16,18 @@ import (
 type Server struct {
 	store   *telemetry.Store
 	started time.Time
+	web     fs.FS // embedded web UI (contents of the web/ dir)
 }
 
-func NewServer(store *telemetry.Store) *Server {
-	return &Server{store: store, started: time.Now()}
+// NewServer builds the API server. webFS is the embedded filesystem whose "web"
+// subdirectory holds the static UI served at /.
+func NewServer(store *telemetry.Store, webFS fs.FS) *Server {
+	content, err := fs.Sub(webFS, "web")
+	if err != nil {
+		// The embed guarantees web/ exists; fall back to the raw FS if not.
+		content = webFS
+	}
+	return &Server{store: store, started: time.Now(), web: content}
 }
 
 func (s *Server) Handler() http.Handler {
@@ -27,6 +36,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/devices", s.handleDevices)
 	mux.HandleFunc("GET /api/v1/devices/{id}/measurements", s.handleDeviceMeasurements)
 	mux.HandleFunc("POST /api/v1/measurements", s.handleBatch)
+	// Static web UI. API routes above are more specific, so they win; anything
+	// else (/, /style.css, /app.js, /logo.svg) is served from the embedded FS.
+	mux.Handle("/", http.FileServer(http.FS(s.web)))
 	return mux
 }
 
