@@ -4,15 +4,31 @@
   "register_type": "input",
   "word_order": "high_first",
   "registers": [
-    { "metric": "ac.voltage",        "address": 512, "type": "float32", "unit": "V",   "scale": 1 },
-    { "metric": "ac.frequency",      "address": 514, "type": "float32", "unit": "Hz",  "scale": 1 },
-    { "metric": "ac.current",        "address": 516, "type": "float32", "unit": "A",   "scale": 1 },
-    { "metric": "ac.power",          "address": 522, "type": "float32", "unit": "W",   "scale": 1 },
-    { "metric": "ac.power.apparent", "address": 528, "type": "float32", "unit": "VA",  "scale": 1 },
-    { "metric": "ac.power.reactive", "address": 534, "type": "float32", "unit": "var", "scale": 1 },
-    { "metric": "ac.power_factor",   "address": 540, "type": "float32", "unit": "",    "scale": 1 },
-    { "metric": "ac.energy.import",  "address": 546, "type": "float32", "unit": "kWh", "scale": 1 },
-    { "metric": "ac.energy.export",  "address": 552, "type": "float32", "unit": "kWh", "scale": 1 },
-    { "metric": "ac.energy.total",   "address": 556, "type": "float32", "unit": "kWh", "scale": 1 }
+    { "metric": "ac.voltage",            "address": 512, "type": "float32", "unit": "V",     "scale": 1 },
+    { "metric": "ac.frequency",          "address": 514, "type": "float32", "unit": "Hz",    "scale": 1 },
+
+    { "metric": "ac.current",            "address": 516, "type": "float32", "unit": "A",     "scale": 1 },
+    { "metric": "ac.current.l1",         "address": 518, "type": "float32", "unit": "A",     "scale": 1 },
+    { "metric": "ac.current.l2",         "address": 520, "type": "float32", "unit": "A",     "scale": 1 },
+
+    { "metric": "ac.power",              "address": 522, "type": "float32", "unit": "W",     "scale": 1 },
+    { "metric": "ac.power.l1",           "address": 524, "type": "float32", "unit": "W",     "scale": 1 },
+    { "metric": "ac.power.l2",           "address": 526, "type": "float32", "unit": "W",     "scale": 1 },
+
+    { "metric": "ac.power.apparent",     "address": 528, "type": "float32", "unit": "VA",    "scale": 1 },
+    { "metric": "ac.power.apparent.l1",  "address": 530, "type": "float32", "unit": "VA",    "scale": 1 },
+    { "metric": "ac.power.apparent.l2",  "address": 532, "type": "float32", "unit": "VA",    "scale": 1 },
+
+    { "metric": "ac.power.reactive",     "address": 534, "type": "float32", "unit": "var",   "scale": 1 },
+    { "metric": "ac.power.reactive.l1",  "address": 536, "type": "float32", "unit": "var",   "scale": 1 },
+    { "metric": "ac.power.reactive.l2",  "address": 538, "type": "float32", "unit": "var",   "scale": 1 },
+
+    { "metric": "ac.power_factor",       "address": 540, "type": "float32", "unit": "",      "scale": 1 },
+    { "metric": "ac.power_factor.l1",    "address": 542, "type": "float32", "unit": "",      "scale": 1 },
+    { "metric": "ac.power_factor.l2",    "address": 544, "type": "float32", "unit": "",      "scale": 1 },
+
+    { "metric": "ac.energy.import",      "address": 546, "type": "float32", "unit": "kWh",   "scale": 1 },
+    { "metric": "ac.energy.export",      "address": 552, "type": "float32", "unit": "kWh",   "scale": 1 },
+    { "metric": "ac.energy.total",       "address": 556, "type": "float32", "unit": "kWh",   "scale": 1 }
   ]
 }

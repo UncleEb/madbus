@@ -44,13 +44,33 @@ three-phase meters expose per-leg registers that we're dropping on the floor.
 
 **To do:**
 
-- Audit the meter register documentation and add per-leg keys where the protocol
-  provides them — e.g. `ac.voltage.l1`/`.l2`(/`.l3`), `ac.current.l1`/`.l2`,
-  `ac.power.l1`/`.l2`, and any per-phase pf/energy the device reports.
-- Emit them even when the connected test meter is single-phase (they'll simply be
-  absent/null for that device rather than silently unimplemented).
-- Apply the same "decode everything documented" pass to the other device
-  categories as they come online (shunts, BMSs, inverters, charge controllers).
+- [x] **Meter per-leg keys added** (2026-07-27) — `generic-meter.json` now emits
+  `ac.current.l1`/`.l2`, `ac.power.l1`/`.l2`, and per-leg apparent/reactive/pf
+  alongside the aggregates. Verified live. Voltage/frequency stay single (this
+  meter reports one of each).
+- Apply the same "decode everything documented" pass to the other categories as
+  they come online — see `docs/device-categories.md` for the canonical
+  per-category vocabulary.
 
 Downstream: Sola will ingest per-leg values and render L1/L2 once these keys
 exist (tracked in Sola's own `TODO.md`).
+
+## Device-category taxonomy — implementation
+
+Reference: `docs/device-categories.md` (canonical metric vocabulary per category:
+meter / charge_controller / shunt / inverter / bms). Build order — nothing but
+the final register maps needs hardware:
+
+1. [x] Per-leg keys on the `meter` category (profile-only). — done 2026-07-27
+2. Add `category` + `schema_version` fields to the profile schema
+   (`internal/profile`) so profiles self-describe and stay parseable as the
+   format evolves.
+3. Extend the decoder with non-numeric value kinds — `enum` (charge.state,
+   inverter.mode), `bool` (MOSFETs, balancing), `bitflags` (protection/alarm
+   registers → many named booleans), indexed `array` (per-cell voltages). This
+   makes a measurement `value` become `number | string | boolean` (currently
+   number-only) — update `docs/api.md` and bump `schema_version`.
+4. Ship a template profile per category (all standard keys, blank addresses) and
+   wire it into the future web UI.
+5. Fill real register maps per device as hardware is acquired; tweak against the
+   physical device.
