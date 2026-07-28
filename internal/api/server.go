@@ -42,6 +42,7 @@ type deviceDTO struct {
 	ID       string  `json:"id"`
 	Name     string  `json:"name"`
 	Profile  string  `json:"profile"`
+	Category string  `json:"category"`
 	Online   bool    `json:"online"`
 	LastRead *string `json:"last_read"`
 }
@@ -189,6 +190,7 @@ func toDeviceDTO(d telemetry.DeviceState) deviceDTO {
 		ID:       d.ID,
 		Name:     d.Name,
 		Profile:  d.Profile,
+		Category: d.Category,
 		Online:   d.Online,
 		LastRead: lastRead,
 	}

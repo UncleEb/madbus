@@ -180,7 +180,7 @@ func buildDevices(cfg *config.Config, profiles map[string]*profile.Profile, stor
 		if !ok {
 			return nil, nil, fmt.Errorf("device %q references unknown profile %q", dc.ID, dc.Profile)
 		}
-		store.Register(dc.ID, dc.Name, dc.Profile)
+		store.Register(dc.ID, dc.Name, dc.Profile, string(prof.Category))
 
 		d := device{cfg: dc, prof: prof}
 		if strings.EqualFold(dc.Serial.Port, "mock") {

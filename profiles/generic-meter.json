@@ -1,6 +1,8 @@
 {
   "id": "generic-meter",
   "name": "Single-phase AC Energy Meter (RS-485, 0x0200 float map)",
+  "category": "meter",
+  "schema_version": 1,
   "register_type": "input",
   "word_order": "high_first",
   "registers": [

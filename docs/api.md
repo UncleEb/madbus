@@ -53,6 +53,7 @@ Returned wherever a device appears:
   "id": "meter-1",
   "name": "Main Load Meter",
   "profile": "eastron-sdm630",
+  "category": "meter",
   "online": true,
   "last_read": "2026-07-23T14:05:00Z"
 }
@@ -63,6 +64,7 @@ Returned wherever a device appears:
 | `id`        | Stable slug (see above). |
 | `name`      | Human-readable name, configurable in the web UI. |
 | `profile`   | The device profile driving normalization for this device. |
+| `category`  | The device class: `meter`, `charge_controller`, `shunt`, `inverter`, or `bms`. Consumers use this to choose how to render the device. See [device-categories.md](device-categories.md). |
 | `online`    | `true` if the most recent poll of this device succeeded. |
 | `last_read` | Timestamp of the last **successful** read. When `online` is `false`, this shows the age of any last-known values. |
 
@@ -95,7 +97,7 @@ List configured devices (identity/metadata only, no measurements).
 {
   "devices": [
     { "id": "meter-1", "name": "Main Load Meter", "profile": "eastron-sdm630",
-      "online": true, "last_read": "2026-07-23T14:05:00Z" }
+      "category": "meter", "online": true, "last_read": "2026-07-23T14:05:00Z" }
   ]
 }
 ```
@@ -108,7 +110,7 @@ All current measurements for a single device. Convenience/debug endpoint.
 {
   "device": {
     "id": "meter-1", "name": "Main Load Meter", "profile": "eastron-sdm630",
-    "online": true, "last_read": "2026-07-23T14:05:00Z"
+    "category": "meter", "online": true, "last_read": "2026-07-23T14:05:00Z"
   },
   "measurements": {
     "ac.power":         { "value": 1832.0,  "unit": "W"   },
@@ -150,7 +152,7 @@ response returns all matching devices' readings in a single round-trip.
   "devices": [
     {
       "device": { "id": "meter-1", "name": "Main Load Meter", "profile": "eastron-sdm630",
-                  "online": true, "last_read": "2026-07-23T14:05:00Z" },
+                  "category": "meter", "online": true, "last_read": "2026-07-23T14:05:00Z" },
       "measurements": {
         "ac.power":   { "value": 1832.0, "unit": "W" },
         "ac.voltage": { "value": 241.2,  "unit": "V" }
@@ -158,7 +160,7 @@ response returns all matching devices' readings in a single round-trip.
     },
     {
       "device": { "id": "meter-2", "name": "Battery Shunt", "profile": "victron-shunt",
-                  "online": false, "last_read": "2026-07-23T14:04:30Z" },
+                  "category": "shunt", "online": false, "last_read": "2026-07-23T14:04:30Z" },
       "measurements": {
         "battery.voltage": { "value": 52.3, "unit": "V", "stale": true },
         "battery.soc":     { "value": 87,   "unit": "%", "stale": true }

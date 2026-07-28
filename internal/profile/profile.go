@@ -43,13 +43,40 @@ const (
 	LowWordFirst  WordOrder = "low_first"
 )
 
+// Category is the device class a profile belongs to. It is the contract with
+// consumers — Sola renders a widget per category — independent of the vendor.
+// See docs/device-categories.md for the canonical vocabulary of each.
+type Category string
+
+const (
+	CategoryMeter            Category = "meter"
+	CategoryChargeController Category = "charge_controller"
+	CategoryShunt            Category = "shunt"
+	CategoryInverter         Category = "inverter"
+	CategoryBMS              Category = "bms"
+)
+
+var validCategories = map[Category]bool{
+	CategoryMeter:            true,
+	CategoryChargeController: true,
+	CategoryShunt:            true,
+	CategoryInverter:         true,
+	CategoryBMS:              true,
+}
+
+// CurrentSchemaVersion is the profile format version this build understands.
+// A profile omitting schema_version is assumed to target this version.
+const CurrentSchemaVersion = 1
+
 // Profile is a device's complete register map.
 type Profile struct {
-	ID           string       `json:"id"`
-	Name         string       `json:"name"`
-	RegisterType RegisterType `json:"register_type"`
-	WordOrder    WordOrder    `json:"word_order"`
-	Registers    []Register   `json:"registers"`
+	ID            string       `json:"id"`
+	Name          string       `json:"name"`
+	Category      Category     `json:"category"`
+	SchemaVersion int          `json:"schema_version"`
+	RegisterType  RegisterType `json:"register_type"`
+	WordOrder     WordOrder    `json:"word_order"`
+	Registers     []Register   `json:"registers"`
 }
 
 // Register maps one normalized metric onto a device register (or register pair).
@@ -111,11 +138,23 @@ func (p *Profile) applyDefaults() {
 	if p.WordOrder == "" {
 		p.WordOrder = HighWordFirst
 	}
+	if p.SchemaVersion == 0 {
+		p.SchemaVersion = CurrentSchemaVersion
+	}
 }
 
 func (p *Profile) validate() error {
 	if p.ID == "" {
 		return fmt.Errorf("profile has no id")
+	}
+	if p.Category == "" {
+		return fmt.Errorf("profile %q: missing category (one of meter, charge_controller, shunt, inverter, bms)", p.ID)
+	}
+	if !validCategories[p.Category] {
+		return fmt.Errorf("profile %q: unknown category %q", p.ID, p.Category)
+	}
+	if p.SchemaVersion > CurrentSchemaVersion {
+		return fmt.Errorf("profile %q: schema_version %d is newer than this build supports (%d)", p.ID, p.SchemaVersion, CurrentSchemaVersion)
 	}
 	if len(p.Registers) == 0 {
 		return fmt.Errorf("profile %q has no registers", p.ID)

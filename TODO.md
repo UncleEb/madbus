@@ -62,9 +62,9 @@ meter / charge_controller / shunt / inverter / bms). Build order — nothing but
 the final register maps needs hardware:
 
 1. [x] Per-leg keys on the `meter` category (profile-only). — done 2026-07-27
-2. Add `category` + `schema_version` fields to the profile schema
-   (`internal/profile`) so profiles self-describe and stay parseable as the
-   format evolves.
+2. [x] Add `category` + `schema_version` fields to the profile schema
+   (`internal/profile`), validated on load, and surface `category` on the API
+   device object. — done 2026-07-27
 3. Extend the decoder with non-numeric value kinds — `enum` (charge.state,
    inverter.mode), `bool` (MOSFETs, balancing), `bitflags` (protection/alarm
    registers → many named booleans), indexed `array` (per-cell voltages). This

@@ -22,6 +22,7 @@ type DeviceState struct {
 	ID       string
 	Name     string
 	Profile  string
+	Category string
 	Online   bool
 	LastRead time.Time // zero if never read successfully
 	Metrics  map[string]Measurement
@@ -39,17 +40,18 @@ func NewStore() *Store {
 }
 
 // Register adds a device in the offline state. It is idempotent.
-func (s *Store) Register(id, name, profileID string) {
+func (s *Store) Register(id, name, profileID, category string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.devices[id]; ok {
 		return
 	}
 	s.devices[id] = &DeviceState{
-		ID:      id,
-		Name:    name,
-		Profile: profileID,
-		Metrics: make(map[string]Measurement),
+		ID:       id,
+		Name:     name,
+		Profile:  profileID,
+		Category: category,
+		Metrics:  make(map[string]Measurement),
 	}
 	s.order = append(s.order, id)
 }
