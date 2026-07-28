@@ -32,17 +32,22 @@ A measurement is an object:
 
 | Field   | Meaning |
 |---------|---------|
-| `value` | The normalized numeric value, or `null` if this metric has never been successfully read. |
-| `unit`  | The unit of `value` (`W`, `V`, `A`, `Hz`, `kWh`, `%`, ...). Always present, even when `value` is `null`. |
+| `value` | The normalized value: a **number** (most metrics), a **string** (enumerated states like `charge.state`), or a **boolean** (flags like `charge.mosfet`). `null` if this metric has never been successfully read. |
+| `unit`  | The unit of a numeric `value` (`W`, `V`, `A`, `Hz`, `kWh`, `%`, ...). Empty for string/boolean values. Always present. |
 | `stale` | Optional. `true` when `value` is a last-known reading that was **not** refreshed on the most recent poll. Omitted (implicitly `false`) when the value is fresh. |
 
-So three states are distinguishable:
+So the distinguishable states:
 
 ```json
-{ "value": 1832.0, "unit": "W" }                 // fresh, read this cycle
-{ "value": 1832.0, "unit": "W", "stale": true }  // last-known, not refreshed this cycle
-{ "value": null,   "unit": "W" }                 // never successfully read
+{ "value": 1832.0,       "unit": "W" }              // numeric, fresh
+{ "value": "absorption", "unit": "" }               // enumerated state
+{ "value": true,         "unit": "" }               // boolean flag
+{ "value": 1832.0, "unit": "W", "stale": true }     // last-known, not refreshed
+{ "value": null,   "unit": "W" }                    // never successfully read
 ```
+
+String and boolean values come from the `enum`, `bool`, and `bitflags` register
+kinds — see [device-categories.md](device-categories.md).
 
 ### Device object
 

@@ -65,11 +65,11 @@ the final register maps needs hardware:
 2. [x] Add `category` + `schema_version` fields to the profile schema
    (`internal/profile`), validated on load, and surface `category` on the API
    device object. — done 2026-07-27
-3. Extend the decoder with non-numeric value kinds — `enum` (charge.state,
+3. [x] Extend the decoder with non-numeric value kinds — `enum` (charge.state,
    inverter.mode), `bool` (MOSFETs, balancing), `bitflags` (protection/alarm
-   registers → many named booleans), indexed `array` (per-cell voltages). This
-   makes a measurement `value` become `number | string | boolean` (currently
-   number-only) — update `docs/api.md` and bump `schema_version`.
+   registers → many named booleans), indexed `array` (per-cell voltages). — done
+   2026-07-27. Measurement `value` is now `number | string | boolean`; schema
+   bumped to v2; `docs/api.md` updated; unit tests in `internal/profile`.
 4. Ship a template profile per category (all standard keys, blank addresses) and
    wire it into the future web UI.
 5. Fill real register maps per device as hardware is acquired; tweak against the

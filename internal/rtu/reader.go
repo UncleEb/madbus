@@ -15,11 +15,11 @@ import (
 )
 
 // Sample is one decoded metric plus the raw register words it came from (kept
-// for diagnostics / terminal logging).
+// for diagnostics / terminal logging). Value is a float64, string, or bool.
 type Sample struct {
 	Metric string
 	Raw    []uint16
-	Value  float64
+	Value  any
 	Unit   string
 }
 
@@ -87,11 +87,13 @@ func (b *Bus) Read(unitID uint8, prof *profile.Profile) ([]Sample, error) {
 			b.markClosed()
 			return nil, fmt.Errorf("read %s @%d: %w", reg.Metric, reg.Address, err)
 		}
-		val, err := reg.Decode(raw, prof.WordOrder)
+		readings, err := reg.Decode(raw, prof.WordOrder)
 		if err != nil {
 			return nil, err
 		}
-		samples = append(samples, Sample{Metric: reg.Metric, Raw: raw, Value: val, Unit: reg.Unit})
+		for _, rd := range readings {
+			samples = append(samples, Sample{Metric: rd.Metric, Raw: raw, Value: rd.Value, Unit: rd.Unit})
+		}
 	}
 	return samples, nil
 }

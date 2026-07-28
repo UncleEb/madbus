@@ -238,8 +238,7 @@ func pollAll(devices []device, store *telemetry.Store) {
 
 		metrics := make(map[string]telemetry.Measurement, len(samples))
 		for _, sample := range samples {
-			value := sample.Value
-			metrics[sample.Metric] = telemetry.Measurement{Value: &value, Unit: sample.Unit}
+			metrics[sample.Metric] = telemetry.Measurement{Value: sample.Value, Unit: sample.Unit}
 			// Raw + decoded per-metric feed, emitted only when debug is enabled.
 			slog.Debug("reading",
 				"device", d.cfg.ID,

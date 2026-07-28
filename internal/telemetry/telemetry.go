@@ -8,11 +8,11 @@ import (
 	"time"
 )
 
-// Measurement is one normalized value. Value is nil when the metric has never
-// been read successfully. Stale is true when the value is a last-known reading
-// that was not refreshed on the most recent poll.
+// Measurement is one normalized value. Value is a float64, string, or bool, or
+// nil when the metric has never been read successfully. Stale is true when the
+// value is a last-known reading that was not refreshed on the most recent poll.
 type Measurement struct {
-	Value *float64
+	Value any
 	Unit  string
 	Stale bool
 }
@@ -146,12 +146,10 @@ func (s *Store) Get(id string) (DeviceState, bool) {
 }
 
 func (d *DeviceState) copy() DeviceState {
+	// Measurement.Value holds an immutable scalar (float64/string/bool) in an
+	// interface, so copying the map by value is a full copy — no aliasing.
 	metrics := make(map[string]Measurement, len(d.Metrics))
 	for k, m := range d.Metrics {
-		if m.Value != nil {
-			v := *m.Value
-			m.Value = &v
-		}
 		metrics[k] = m
 	}
 	cp := *d

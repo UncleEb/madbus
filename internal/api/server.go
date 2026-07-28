@@ -33,9 +33,9 @@ func (s *Server) Handler() http.Handler {
 // --- wire types (see docs/api.md) ---
 
 type measurementDTO struct {
-	Value *float64 `json:"value"`
-	Unit  string   `json:"unit"`
-	Stale bool     `json:"stale,omitempty"`
+	Value any    `json:"value"` // number, string, or bool; null if never read
+	Unit  string `json:"unit"`
+	Stale bool   `json:"stale,omitempty"`
 }
 
 type deviceDTO struct {

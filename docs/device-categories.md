@@ -4,11 +4,11 @@ The canonical vocabulary of device **categories** and their normalized metrics.
 This is the reference that device profiles, shared community profiles, and
 downstream consumers (Sola) all build against.
 
-> Status: design reference. The category *vocabularies* below are stable enough
-> to build against. The profile-schema additions (`category`, `schema_version`)
-> and the non-numeric value kinds (`enum`, `bool`, `bitflags`, indexed arrays)
-> are **not yet implemented** — today's decoder handles scaled numbers only.
-> Register maps are filled in per device as hardware is acquired.
+> Status: living reference. The profile-schema additions (`category`,
+> `schema_version`) and the non-numeric value kinds (`enum`, `bool`, `bitflags`,
+> indexed `array`) are **implemented** as of schema v2. Category *vocabularies*
+> below are stable to build against; per-category register maps and templates
+> are filled in as hardware is acquired.
 
 ---
 
@@ -85,10 +85,9 @@ grows these value kinds:
 | `bitflags` | one register → many named booleans | expands to several `bool` metrics | `{"type":"bitflags","prefix":"protection","flags":{"1":"over_voltage"}}` |
 | `array` | repeated/indexed registers (per-cell) | expands to `key.1 … key.N` | `{"metric":"cell.voltage","type":"uint16","count":16,"stride":1,"scale":0.001}` |
 
-> **API impact:** a measurement `value` becomes `number | string | boolean`
-> (currently number only). `docs/api.md` will be updated and `schema_version`
-> bumped when these land. The `unit` field stays for numeric metrics and is
-> empty for enum/bool.
+> **API impact (done, schema v2):** a measurement `value` is `number | string |
+> boolean`. The `unit` field stays for numeric metrics and is empty for
+> enum/bool. See `docs/api.md`.
 
 ---
 
@@ -207,10 +206,10 @@ Status: not yet built. New readout on the Sola side. Needs the `enum` / `bool` /
 - **No hardware needed** to define/refine the vocabularies above — that's the
   point. Register maps get filled in per device as hardware is acquired.
 - Implementation order that isn't gated on owning every device:
-  1. Per-leg keys on the `meter` category (profile-only).
-  2. Add `category` + `schema_version` to the profile schema.
-  3. Extend the decoder with `enum` / `bool` / `bitflags` / `array` kinds and
-     the non-numeric measurement value (bump `schema_version`, update
-     `docs/api.md`).
+  1. **[done]** Per-leg keys on the `meter` category (profile-only).
+  2. **[done]** `category` + `schema_version` fields, validated on load;
+     `category` surfaced on the API device object.
+  3. **[done]** Decoder `enum` / `bool` / `bitflags` / `array` kinds; measurement
+     value is now `number | string | boolean` (schema v2).
   4. Ship a **template** per category and wire it into the (future) web UI.
   5. Fill real register maps as devices arrive; tweak details against hardware.
