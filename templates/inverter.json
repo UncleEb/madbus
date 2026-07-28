@@ -1,0 +1,25 @@
+{
+  "id": "template-inverter",
+  "name": "TEMPLATE: inverter / inverter-charger — set addresses/comms, rename id, move to profiles/",
+  "category": "inverter",
+  "schema_version": 2,
+  "register_type": "holding",
+  "word_order": "high_first",
+  "registers": [
+    { "metric": "ac.out.voltage",       "address": 0,  "type": "float32", "unit": "V",  "scale": 1 },
+    { "metric": "ac.out.current",       "address": 2,  "type": "float32", "unit": "A",  "scale": 1 },
+    { "metric": "ac.out.power",         "address": 4,  "type": "float32", "unit": "W",  "scale": 1 },
+    { "metric": "ac.out.frequency",     "address": 6,  "type": "float32", "unit": "Hz", "scale": 1 },
+    { "metric": "ac.in.voltage",        "address": 8,  "type": "float32", "unit": "V",  "scale": 1 },
+    { "metric": "ac.in.current",        "address": 10, "type": "float32", "unit": "A",  "scale": 1 },
+    { "metric": "ac.in.power",          "address": 12, "type": "float32", "unit": "W",  "scale": 1 },
+    { "metric": "ac.in.frequency",      "address": 14, "type": "float32", "unit": "Hz", "scale": 1 },
+    { "metric": "dc.in.voltage",        "address": 16, "type": "float32", "unit": "V",  "scale": 1 },
+    { "metric": "dc.in.current",        "address": 18, "type": "float32", "unit": "A",  "scale": 1 },
+    { "metric": "dc.in.power",          "address": 20, "type": "float32", "unit": "W",  "scale": 1 },
+    { "metric": "inverter.load_percent","address": 22, "type": "float32", "unit": "%",  "scale": 1 },
+    { "metric": "device.temperature",   "address": 24, "type": "float32", "unit": "°C", "scale": 1 },
+    { "metric": "inverter.mode", "address": 26, "type": "enum",
+      "values": { "0": "off", "1": "inverting", "2": "charging", "3": "passthrough", "4": "bulk", "5": "absorption", "6": "float" } }
+  ]
+}

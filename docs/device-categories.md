@@ -211,5 +211,6 @@ Status: not yet built. New readout on the Sola side. Needs the `enum` / `bool` /
      `category` surfaced on the API device object.
   3. **[done]** Decoder `enum` / `bool` / `bitflags` / `array` kinds; measurement
      value is now `number | string | boolean` (schema v2).
-  4. Ship a **template** per category and wire it into the (future) web UI.
+  4. **[done]** Ship a **template** per category (`templates/`). Remaining: wire
+     into the (future) web UI.
   5. Fill real register maps as devices arrive; tweak details against hardware.

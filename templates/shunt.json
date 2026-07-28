@@ -1,0 +1,18 @@
+{
+  "id": "template-shunt",
+  "name": "TEMPLATE: battery monitor / shunt — set addresses/comms, rename id, move to profiles/",
+  "category": "shunt",
+  "schema_version": 1,
+  "register_type": "holding",
+  "word_order": "high_first",
+  "registers": [
+    { "metric": "battery.voltage",     "address": 0,  "type": "float32", "unit": "V",  "scale": 1 },
+    { "metric": "battery.current",     "address": 2,  "type": "float32", "unit": "A",  "scale": 1 },
+    { "metric": "battery.power",       "address": 4,  "type": "float32", "unit": "W",  "scale": 1 },
+    { "metric": "battery.soc",         "address": 6,  "type": "float32", "unit": "%",  "scale": 1 },
+    { "metric": "battery.consumed_ah", "address": 8,  "type": "float32", "unit": "Ah", "scale": 1 },
+    { "metric": "battery.time_to_go",  "address": 10, "type": "float32", "unit": "s",  "scale": 1 },
+    { "metric": "battery.temperature", "address": 12, "type": "float32", "unit": "°C", "scale": 1 },
+    { "metric": "battery.soh",         "address": 14, "type": "float32", "unit": "%",  "scale": 1 }
+  ]
+}

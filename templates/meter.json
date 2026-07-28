@@ -1,0 +1,24 @@
+{
+  "id": "template-meter",
+  "name": "TEMPLATE: AC energy meter — set addresses/comms, rename id, move to profiles/",
+  "category": "meter",
+  "schema_version": 1,
+  "register_type": "holding",
+  "word_order": "high_first",
+  "registers": [
+    { "metric": "ac.voltage",       "address": 0,  "type": "float32", "unit": "V",   "scale": 1 },
+    { "metric": "ac.frequency",     "address": 2,  "type": "float32", "unit": "Hz",  "scale": 1 },
+    { "metric": "ac.current",       "address": 4,  "type": "float32", "unit": "A",   "scale": 1 },
+    { "metric": "ac.current.l1",    "address": 6,  "type": "float32", "unit": "A",   "scale": 1 },
+    { "metric": "ac.current.l2",    "address": 8,  "type": "float32", "unit": "A",   "scale": 1 },
+    { "metric": "ac.power",         "address": 10, "type": "float32", "unit": "W",   "scale": 1 },
+    { "metric": "ac.power.l1",      "address": 12, "type": "float32", "unit": "W",   "scale": 1 },
+    { "metric": "ac.power.l2",      "address": 14, "type": "float32", "unit": "W",   "scale": 1 },
+    { "metric": "ac.power.apparent","address": 16, "type": "float32", "unit": "VA",  "scale": 1 },
+    { "metric": "ac.power.reactive","address": 18, "type": "float32", "unit": "var", "scale": 1 },
+    { "metric": "ac.power_factor",  "address": 20, "type": "float32", "unit": "",    "scale": 1 },
+    { "metric": "ac.energy.import", "address": 22, "type": "float32", "unit": "kWh", "scale": 1 },
+    { "metric": "ac.energy.export", "address": 24, "type": "float32", "unit": "kWh", "scale": 1 },
+    { "metric": "ac.energy.total",  "address": 26, "type": "float32", "unit": "kWh", "scale": 1 }
+  ]
+}
