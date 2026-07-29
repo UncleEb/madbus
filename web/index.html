@@ -21,11 +21,85 @@
   <main class="content">
     <div id="banner" class="banner" hidden></div>
     <section>
-      <h1 class="section-title">Devices</h1>
+      <div class="section-head">
+        <h1 class="section-title">Devices</h1>
+        <button id="add-device" class="btn btn-primary btn-sm">+ Add device</button>
+      </div>
       <div id="device-list" class="device-list"></div>
-      <p id="empty" class="empty" hidden>No devices registered yet.</p>
+      <p id="empty" class="empty" hidden>No devices yet. Add one to get started.</p>
     </section>
   </main>
+
+  <dialog id="device-dialog" class="dialog">
+    <form id="device-form">
+      <h2 id="dialog-title" class="dialog-title">Add device</h2>
+      <div id="form-msg" class="form-msg" hidden></div>
+
+      <div class="field">
+        <label class="field-label" for="d-id">ID</label>
+        <div class="field-input"><input type="text" id="d-id" placeholder="meter-1" spellcheck="false"></div>
+        <p class="field-hint">Lowercase letters, digits, hyphens. Cannot be changed later.</p>
+      </div>
+      <div class="field">
+        <label class="field-label" for="d-name">Name</label>
+        <div class="field-input"><input type="text" id="d-name" placeholder="Main Meter"></div>
+      </div>
+      <div class="field">
+        <label class="field-label" for="d-profile">Profile</label>
+        <div class="field-input"><select id="d-profile"></select></div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label" for="d-unit">Unit ID</label>
+          <div class="field-input"><input type="number" id="d-unit" min="0" max="255" value="1"></div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="d-poll">Poll interval</label>
+          <div class="field-input"><input type="number" id="d-poll" min="1" max="3600" placeholder="default"><span class="field-unit">sec</span></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="d-port">Hardware Interface</label>
+        <div class="field-input">
+          <select id="d-port"></select>
+          <button type="button" id="rescan-ports" class="icon-btn" title="Rescan for connected hardware">Rescan</button>
+        </div>
+        <p class="field-hint">The USB serial adapter your device is wired to. Choose <em>Mock</em> to synthesize readings without hardware.</p>
+      </div>
+
+      <div id="serial-settings">
+        <h3 class="form-subhead">Serial settings</h3>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="d-baud">Baud</label>
+            <div class="field-input"><input type="number" id="d-baud" value="9600"></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="d-parity">Parity</label>
+            <div class="field-input">
+              <select id="d-parity"><option value="none">None</option><option value="even">Even</option><option value="odd">Odd</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="d-databits">Data bits</label>
+            <div class="field-input"><input type="number" id="d-databits" value="8" min="5" max="8"></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="d-stopbits">Stop bits</label>
+            <div class="field-input"><input type="number" id="d-stopbits" value="1" min="1" max="2"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" id="dialog-cancel" class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="/app.js"></script>
 </body>

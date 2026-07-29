@@ -40,11 +40,16 @@ func NewStore() *Store {
 	return &Store{devices: make(map[string]*DeviceState)}
 }
 
-// Register adds a device in the offline state. It is idempotent.
+// Register adds a device in the offline state, or updates the identity fields
+// (name/profile/category) of an existing one while preserving its runtime state.
+// This makes it safe to call on every config reconcile.
 func (s *Store) Register(id, name, profileID, category string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.devices[id]; ok {
+	if d, ok := s.devices[id]; ok {
+		d.Name = name
+		d.Profile = profileID
+		d.Category = category
 		return
 	}
 	s.devices[id] = &DeviceState{
@@ -55,6 +60,22 @@ func (s *Store) Register(id, name, profileID, category string) {
 		Metrics:  make(map[string]Measurement),
 	}
 	s.order = append(s.order, id)
+}
+
+// Remove drops a device from the store (e.g. after it's deleted from config).
+func (s *Store) Remove(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.devices[id]; !ok {
+		return
+	}
+	delete(s.devices, id)
+	for i, oid := range s.order {
+		if oid == id {
+			s.order = append(s.order[:i], s.order[i+1:]...)
+			break
+		}
+	}
 }
 
 // RecordSuccess replaces a device's metrics with fresh readings.

@@ -7,7 +7,13 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
+
+// slugPattern is the allowed form for a device id: lowercase letters/digits in
+// hyphen-separated groups, e.g. "meter-1".
+var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 // Config is the top-level Madbus configuration, loaded from config.json.
 type Config struct {
@@ -24,8 +30,11 @@ type Device struct {
 	Name    string `json:"name"`
 	Profile string `json:"profile"`
 	// UnitID is the Modbus slave/unit address on the RS-485 bus.
-	UnitID uint8  `json:"unit_id"`
-	Serial Serial `json:"serial"`
+	UnitID uint8 `json:"unit_id"`
+	// PollIntervalSeconds overrides the global default for this device. 0 = use
+	// the global PollIntervalSeconds.
+	PollIntervalSeconds int    `json:"poll_interval_seconds,omitempty"`
+	Serial              Serial `json:"serial"`
 }
 
 // Serial describes the serial link to a device. Multiple devices may share the
@@ -116,6 +125,56 @@ func Save(path string, cfg *Config) error {
 		return err
 	}
 	return os.Rename(tmpName, path)
+}
+
+// FillSerialDefaults fills zero serial fields (except baud, which is required)
+// so a device created via the API is stored fully specified.
+func (d *Device) FillSerialDefaults() {
+	if strings.EqualFold(d.Serial.Port, "mock") {
+		return
+	}
+	if d.Serial.DataBits == 0 {
+		d.Serial.DataBits = 8
+	}
+	if d.Serial.StopBits == 0 {
+		d.Serial.StopBits = 1
+	}
+	if d.Serial.Parity == "" {
+		d.Serial.Parity = "none"
+	}
+}
+
+// Validate checks a single device's fields.
+func (d Device) Validate() error {
+	if d.ID == "" {
+		return fmt.Errorf("device id is required")
+	}
+	if !slugPattern.MatchString(d.ID) {
+		return fmt.Errorf("device id %q must be a slug: lowercase letters, digits, and hyphens (e.g. meter-1)", d.ID)
+	}
+	if d.Name == "" {
+		return fmt.Errorf("device name is required")
+	}
+	if d.Profile == "" {
+		return fmt.Errorf("device profile is required")
+	}
+	if d.PollIntervalSeconds < 0 || d.PollIntervalSeconds > 3600 {
+		return fmt.Errorf("poll_interval_seconds must be 0 (use default) or between 1 and 3600")
+	}
+	if d.Serial.Port == "" {
+		return fmt.Errorf("serial port is required (a device path like /dev/ttyUSB0, or \"mock\")")
+	}
+	if !strings.EqualFold(d.Serial.Port, "mock") {
+		if d.Serial.Baud == 0 {
+			return fmt.Errorf("serial baud is required")
+		}
+		switch strings.ToLower(d.Serial.Parity) {
+		case "", "none", "even", "odd":
+		default:
+			return fmt.Errorf("serial parity must be none, even, or odd")
+		}
+	}
+	return nil
 }
 
 // Validate checks the settings-level fields. Device-level validation is added

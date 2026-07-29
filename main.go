@@ -52,15 +52,6 @@ func main() {
 	}
 }
 
-// device pairs a configured device with its resolved profile and, for real
-// hardware, the shared serial bus it lives on.
-type device struct {
-	cfg  config.Device
-	prof *profile.Profile
-	bus  *rtu.Bus // nil for mock devices
-	mock bool
-}
-
 func run() error {
 	configPath := flag.String("config", "config.json", "path to config file")
 	flag.Parse()
@@ -79,10 +70,7 @@ func run() error {
 	slog.Info("profiles loaded", "count", len(profiles), "dir", cfg.ProfilesDir)
 
 	store := telemetry.NewStore()
-	devices, buses, err := buildDevices(cfg, profiles, store)
-	if err != nil {
-		return err
-	}
+	poller := newPoller(store, profiles, *configPath, cfg)
 
 	// Restore per-device last-online timestamps so a just-restarted Madbus can
 	// report when each device was last reachable, before the first poll.
@@ -121,23 +109,27 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	interval := time.Duration(cfg.PollIntervalSeconds) * time.Second
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+	// A 1s base tick drives the scheduler: config is reloaded on change, then
+	// every device whose period has elapsed is read. Per-device periods give 1s
+	// resolution; devices sharing a serial bus serialize on the bus mutex.
+	baseTicker := time.NewTicker(time.Second)
+	defer baseTicker.Stop()
 
 	stateTicker := time.NewTicker(stateFlushInterval)
 	defer stateTicker.Stop()
 
-	slog.Info("madbus started", "devices", len(devices), "poll_interval", interval.String())
+	slog.Info("madbus started", "devices", poller.deviceCount(),
+		"default_poll_interval", (time.Duration(cfg.PollIntervalSeconds) * time.Second).String())
 
-	pollAll(devices, store)
+	poller.tick(time.Now())
 	online := 0
 	for _, d := range store.Snapshot() {
 		if d.Online {
 			online++
 		}
 	}
-	slog.Info("initial poll complete", "online", online, "total", len(devices))
+	slog.Info("initial poll complete", "online", online, "total", poller.deviceCount())
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -146,21 +138,11 @@ func run() error {
 			shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			_ = srv.Shutdown(shutCtx)
 			cancel()
-			for _, b := range buses {
-				b.Close()
-			}
+			poller.close()
 			return nil
-		case <-ticker.C:
-			// Live config reload (Sola-style): config.json is the source of
-			// truth. Settings apply live here; device reconcile lands with the
-			// device-management slice.
-			if reloaded, err := config.Load(*configPath); err != nil {
-				slog.Warn("config reload failed, keeping current settings", "err", err)
-			} else {
-				applySettings(cfg, reloaded, ticker)
-				cfg = reloaded
-			}
-			pollAll(devices, store)
+		case now := <-baseTicker.C:
+			poller.maybeReload()
+			poller.tick(now)
 		case <-stateTicker.C:
 			flush("interval")
 		}
@@ -176,20 +158,6 @@ func setLogLevel(debug bool) {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
 }
 
-// applySettings applies the settings-level differences between the previously
-// loaded config and a freshly reloaded one, live. Listen-address changes are not
-// applied here (the socket is already bound) and take effect on the next start.
-func applySettings(old, cur *config.Config, ticker *time.Ticker) {
-	if cur.PollIntervalSeconds != old.PollIntervalSeconds && cur.PollIntervalSeconds > 0 {
-		ticker.Reset(time.Duration(cur.PollIntervalSeconds) * time.Second)
-		slog.Info("poll interval changed", "seconds", cur.PollIntervalSeconds)
-	}
-	if cur.Debug != old.Debug {
-		setLogLevel(cur.Debug)
-		slog.Info("debug logging changed", "debug", cur.Debug)
-	}
-}
-
 // sameTimes reports whether two last-online maps are identical.
 func sameTimes(a, b map[string]time.Time) bool {
 	if len(a) != len(b) {
@@ -201,95 +169,6 @@ func sameTimes(a, b map[string]time.Time) bool {
 		}
 	}
 	return true
-}
-
-// buildDevices resolves profiles, registers devices in the store, and creates
-// one shared Bus per serial port.
-func buildDevices(cfg *config.Config, profiles map[string]*profile.Profile, store *telemetry.Store) ([]device, map[string]*rtu.Bus, error) {
-	buses := make(map[string]*rtu.Bus)
-	var devices []device
-
-	for _, dc := range cfg.Devices {
-		prof, ok := profiles[dc.Profile]
-		if !ok {
-			return nil, nil, fmt.Errorf("device %q references unknown profile %q", dc.ID, dc.Profile)
-		}
-		store.Register(dc.ID, dc.Name, dc.Profile, string(prof.Category))
-
-		d := device{cfg: dc, prof: prof}
-		if strings.EqualFold(dc.Serial.Port, "mock") {
-			d.mock = true
-			slog.Info("device configured (mock)", "device", dc.ID, "profile", dc.Profile)
-		} else {
-			bus, ok := buses[dc.Serial.Port]
-			if !ok {
-				parity, err := rtu.ParseParity(dc.Serial.Parity)
-				if err != nil {
-					return nil, nil, fmt.Errorf("device %q: %w", dc.ID, err)
-				}
-				bus = rtu.NewBus(rtu.SerialParams{
-					Port:     dc.Serial.Port,
-					Baud:     dc.Serial.Baud,
-					DataBits: dc.Serial.DataBits,
-					Parity:   parity,
-					StopBits: dc.Serial.StopBits,
-					Timeout:  time.Second,
-				})
-				buses[dc.Serial.Port] = bus
-			}
-			d.bus = bus
-			slog.Info("device configured", "device", dc.ID, "profile", dc.Profile,
-				"port", dc.Serial.Port, "unit_id", dc.UnitID)
-		}
-		devices = append(devices, d)
-	}
-	return devices, buses, nil
-}
-
-func pollAll(devices []device, store *telemetry.Store) {
-	for _, d := range devices {
-		prev, _ := store.Get(d.cfg.ID)
-		wasOnline := prev.Online
-
-		var (
-			samples []rtu.Sample
-			err     error
-		)
-		if d.mock {
-			samples = mockRead(d.prof)
-		} else {
-			samples, err = d.bus.Read(d.cfg.UnitID, d.prof)
-		}
-		if err != nil {
-			reason := err.Error()
-			store.RecordFailure(d.cfg.ID, reason)
-			// Announce the offline edge — coming from online, the first failure,
-			// or a changed reason — with the cause, then retry quietly. This is
-			// what makes "device unplugged / not connected yet" visible instead
-			// of a silent offline device.
-			if wasOnline || prev.LastError != reason {
-				slog.Warn("device offline", "device", d.cfg.ID, "err", reason)
-			}
-			continue
-		}
-
-		metrics := make(map[string]telemetry.Measurement, len(samples))
-		for _, sample := range samples {
-			metrics[sample.Metric] = telemetry.Measurement{Value: sample.Value, Unit: sample.Unit}
-			// Raw + decoded per-metric feed, emitted only when debug is enabled.
-			slog.Debug("reading",
-				"device", d.cfg.ID,
-				"metric", sample.Metric,
-				"raw", hexWords(sample.Raw),
-				"value", sample.Value,
-				"unit", sample.Unit,
-			)
-		}
-		store.RecordSuccess(d.cfg.ID, time.Now().UTC(), metrics)
-		if !wasOnline {
-			slog.Info("device online", "device", d.cfg.ID, "metrics", len(metrics))
-		}
-	}
 }
 
 func hexWords(raw []uint16) string {
