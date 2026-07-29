@@ -70,11 +70,7 @@ func run() error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	level := slog.LevelInfo
-	if cfg.Debug {
-		level = slog.LevelDebug
-	}
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
+	setLogLevel(cfg.Debug)
 
 	profiles, err := profile.Load(cfg.ProfilesDir)
 	if err != nil {
@@ -114,7 +110,7 @@ func run() error {
 		slog.Debug("last-seen state persisted", "reason", reason, "devices", len(current))
 	}
 
-	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: api.NewServer(store, webFS).Handler()}
+	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: api.NewServer(store, webFS, *configPath).Handler()}
 	go func() {
 		slog.Info("http listening", "addr", cfg.HTTPAddr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -155,10 +151,42 @@ func run() error {
 			}
 			return nil
 		case <-ticker.C:
+			// Live config reload (Sola-style): config.json is the source of
+			// truth. Settings apply live here; device reconcile lands with the
+			// device-management slice.
+			if reloaded, err := config.Load(*configPath); err != nil {
+				slog.Warn("config reload failed, keeping current settings", "err", err)
+			} else {
+				applySettings(cfg, reloaded, ticker)
+				cfg = reloaded
+			}
 			pollAll(devices, store)
 		case <-stateTicker.C:
 			flush("interval")
 		}
+	}
+}
+
+// setLogLevel installs a slog text handler at the level implied by debug.
+func setLogLevel(debug bool) {
+	level := slog.LevelInfo
+	if debug {
+		level = slog.LevelDebug
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
+}
+
+// applySettings applies the settings-level differences between the previously
+// loaded config and a freshly reloaded one, live. Listen-address changes are not
+// applied here (the socket is already bound) and take effect on the next start.
+func applySettings(old, cur *config.Config, ticker *time.Ticker) {
+	if cur.PollIntervalSeconds != old.PollIntervalSeconds && cur.PollIntervalSeconds > 0 {
+		ticker.Reset(time.Duration(cur.PollIntervalSeconds) * time.Second)
+		slog.Info("poll interval changed", "seconds", cur.PollIntervalSeconds)
+	}
+	if cur.Debug != old.Debug {
+		setLogLevel(cur.Debug)
+		slog.Info("debug logging changed", "debug", cur.Debug)
 	}
 }
 

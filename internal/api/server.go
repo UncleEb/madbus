@@ -7,27 +7,33 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
+	"sync"
 	"time"
 
+	"madbus/internal/config"
 	"madbus/internal/telemetry"
 )
 
 type Server struct {
-	store   *telemetry.Store
-	started time.Time
-	web     fs.FS // embedded web UI (contents of the web/ dir)
+	store      *telemetry.Store
+	started    time.Time
+	web        fs.FS  // embedded web UI (contents of the web/ dir)
+	configPath string // config.json is the source of truth for settings/devices
+	writeMu    sync.Mutex
 }
 
 // NewServer builds the API server. webFS is the embedded filesystem whose "web"
-// subdirectory holds the static UI served at /.
-func NewServer(store *telemetry.Store, webFS fs.FS) *Server {
+// subdirectory holds the static UI served at /. configPath is the config file
+// the running poll loop reloads; write endpoints edit it atomically.
+func NewServer(store *telemetry.Store, webFS fs.FS, configPath string) *Server {
 	content, err := fs.Sub(webFS, "web")
 	if err != nil {
 		// The embed guarantees web/ exists; fall back to the raw FS if not.
 		content = webFS
 	}
-	return &Server{store: store, started: time.Now(), web: content}
+	return &Server{store: store, started: time.Now(), web: content, configPath: configPath}
 }
 
 func (s *Server) Handler() http.Handler {
@@ -36,6 +42,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/devices", s.handleDevices)
 	mux.HandleFunc("GET /api/v1/devices/{id}/measurements", s.handleDeviceMeasurements)
 	mux.HandleFunc("POST /api/v1/measurements", s.handleBatch)
+	mux.HandleFunc("GET /api/v1/settings", s.handleGetSettings)
+	mux.HandleFunc("PUT /api/v1/settings", s.handlePutSettings)
 	// Static web UI. API routes above are more specific, so they win; anything
 	// else (/, /style.css, /app.js, /logo.svg) is served from the embedded FS.
 	mux.Handle("/", http.FileServer(http.FS(s.web)))
@@ -166,6 +174,95 @@ func (s *Server) handleBatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// settingsDTO is the settings-level view of the config (no devices).
+type settingsDTO struct {
+	PollIntervalSeconds int    `json:"poll_interval_seconds"`
+	Debug               bool   `json:"debug"`
+	HTTPAddr            string `json:"http_addr"`
+	ProfilesDir         string `json:"profiles_dir"`
+}
+
+func settingsOf(c *config.Config) settingsDTO {
+	return settingsDTO{
+		PollIntervalSeconds: c.PollIntervalSeconds,
+		Debug:               c.Debug,
+		HTTPAddr:            c.HTTPAddr,
+		ProfilesDir:         c.ProfilesDir,
+	}
+}
+
+func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
+	cfg, err := config.Load(s.configPath)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "read config: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, settingsOf(cfg))
+}
+
+func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
+	var in settingsDTO
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body: "+err.Error())
+		return
+	}
+
+	// Serialize writes, and always edit a freshly-loaded config so device
+	// changes made elsewhere aren't clobbered.
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	cfg, err := config.Load(s.configPath)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "read config: "+err.Error())
+		return
+	}
+	oldAddr := cfg.HTTPAddr
+	cfg.PollIntervalSeconds = in.PollIntervalSeconds
+	cfg.Debug = in.Debug
+	cfg.HTTPAddr = in.HTTPAddr
+	if in.ProfilesDir != "" {
+		cfg.ProfilesDir = in.ProfilesDir
+	}
+	if err := cfg.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	// If the listen port is changing, make sure the new one is actually free —
+	// otherwise the change would silently break the server on next restart. The
+	// current port is skipped (our own server holds it, and it isn't changing).
+	if newPort := portOf(cfg.HTTPAddr); newPort != portOf(oldAddr) {
+		if err := checkAddrFree(cfg.HTTPAddr); err != nil {
+			writeError(w, http.StatusConflict, "port "+newPort+" is already in use — listen address not changed")
+			return
+		}
+	}
+	if err := config.Save(s.configPath, cfg); err != nil {
+		writeError(w, http.StatusInternalServerError, "write config: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, settingsOf(cfg))
+}
+
+// portOf extracts the port from a host:port listen address; if it can't be
+// parsed, the whole string is returned so unequal addresses still compare.
+func portOf(addr string) string {
+	if _, port, err := net.SplitHostPort(addr); err == nil {
+		return port
+	}
+	return addr
+}
+
+// checkAddrFree reports whether addr can be bound right now (a pre-flight so a
+// changed listen address that's already taken is rejected instead of saved).
+func checkAddrFree(addr string) error {
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	return ln.Close()
 }
 
 // --- helpers ---

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings · Madbus</title>
+  <link rel="icon" href="/logo.svg">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img class="brand-mark" src="/logo.svg" alt="" width="40" height="40">
+      <span class="brand-name">MADBUS</span>
+    </a>
+    <nav class="nav">
+      <a class="nav-link is-active" href="/settings.html">Settings</a>
+    </nav>
+  </header>
+
+  <main class="content content-narrow">
+    <h1 class="section-title">Settings</h1>
+    <form id="settings-form" class="form" novalidate>
+      <div id="msg" class="form-msg" hidden></div>
+
+      <div class="field">
+        <label class="field-label" for="poll">Default poll interval</label>
+        <div class="field-input">
+          <input type="number" id="poll" min="1" max="3600" step="1">
+          <span class="field-unit">seconds</span>
+        </div>
+        <p class="field-hint">How often each device is read, unless it sets its own interval. Applies live.</p>
+      </div>
+
+      <div class="field field-check">
+        <input type="checkbox" id="debug">
+        <div>
+          <label class="field-label" for="debug">Debug logging</label>
+          <p class="field-hint">Verbose per-reading output in the terminal. Applies live.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="addr">Listen address</label>
+        <div class="field-input">
+          <input type="text" id="addr" placeholder=":8090" spellcheck="false">
+        </div>
+        <p class="field-hint">HTTP address for the API and this UI. Applies after a restart.</p>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </main>
+
+  <script src="/settings.js"></script>
+</body>
+</html>

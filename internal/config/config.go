@@ -4,7 +4,9 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
+	"path/filepath"
 )
 
 // Config is the top-level Madbus configuration, loaded from config.json.
@@ -86,13 +88,52 @@ func Load(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// Save writes cfg to path as indented JSON.
+// Save writes cfg to path as indented JSON, atomically (temp file + rename) so a
+// concurrent reader (the poll loop reloading config) never sees a partial write.
 func Save(path string, cfg *Config) error {
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(data, '\n'), 0o644)
+	data = append(data, '\n')
+
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".config-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName) // no-op once renamed away
+
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, path)
+}
+
+// Validate checks the settings-level fields. Device-level validation is added
+// with device management.
+func (c *Config) Validate() error {
+	if c.HTTPAddr == "" {
+		return fmt.Errorf("http_addr must not be empty")
+	}
+	if _, _, err := net.SplitHostPort(c.HTTPAddr); err != nil {
+		return fmt.Errorf("http_addr must be in host:port form (e.g. :8090)")
+	}
+	if c.PollIntervalSeconds < 1 || c.PollIntervalSeconds > 3600 {
+		return fmt.Errorf("poll_interval_seconds must be between 1 and 3600")
+	}
+	if c.ProfilesDir == "" {
+		return fmt.Errorf("profiles_dir must not be empty")
+	}
+	return nil
 }
 
 // applyDefaults fills in sensible values for any zero fields so a sparse config

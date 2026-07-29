@@ -68,9 +68,11 @@ body {
   transition: color 0.15s, background 0.15s;
 }
 .nav-link:hover { color: var(--blue-bright); background: rgba(47, 147, 234, 0.10); }
+.nav-link.is-active { color: var(--blue-bright); }
 
 /* ---- content ---- */
 .content { max-width: 860px; margin: 0 auto; padding: 32px 24px 64px; }
+.content-narrow { max-width: 560px; }
 
 .section-title {
   margin: 0 0 16px;
@@ -176,18 +178,78 @@ body {
   border: 1px solid rgba(236, 91, 87, 0.30);
 }
 
-/* ---- toast ---- */
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: 28px;
-  transform: translateX(-50%);
-  background: var(--surface);
+/* ---- form ---- */
+.form { display: grid; gap: 22px; }
+
+.field { display: grid; gap: 7px; }
+
+.field-label { font-size: 14px; font-weight: 700; color: var(--text); }
+
+.field-input { display: flex; align-items: center; gap: 10px; }
+
+.field-input input[type="text"],
+.field-input input[type="number"] {
+  width: 100%;
+  max-width: 220px;
+  background: #0d1e33;
   border: 1px solid var(--border);
+  border-radius: 9px;
   color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field-input input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(47, 147, 234, 0.18);
+}
+
+.field-unit { color: var(--muted); font-size: 13.5px; }
+
+.field-hint { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+.field-check {
+  grid-auto-flow: column;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 12px;
+}
+.field-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--blue);
+}
+
+.form-actions { margin-top: 4px; }
+
+.btn {
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-primary { background: var(--blue); color: #06121f; }
+.btn-primary:hover { background: var(--blue-bright); }
+
+.form-msg {
+  padding: 11px 14px;
+  border-radius: 9px;
   font-size: 13.5px;
-  font-weight: 600;
-  padding: 11px 18px;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.form-msg.is-ok {
+  color: #a9e6c2;
+  background: rgba(46, 204, 113, 0.12);
+  border: 1px solid rgba(46, 204, 113, 0.30);
+}
+.form-msg.is-err {
+  color: #f3a9a7;
+  background: rgba(236, 91, 87, 0.12);
+  border: 1px solid rgba(236, 91, 87, 0.30);
 }

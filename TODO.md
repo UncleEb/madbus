@@ -87,10 +87,29 @@ the final register maps needs hardware:
 
 Build the built-in web interface (README "Web Interface"): initial setup, device
 discovery, comms config, register mapping, profile management, diagnostics, live
-telemetry, status. Foundations and open questions:
+telemetry, status.
 
-- **Device/settings management endpoints** (write API: add/edit/remove devices,
-  edit settings). The API is read-only telemetry today; the web UI needs this.
+Done so far:
+- [x] **Home screen** (embedded `web/`, served at `/`): logo, nav, device list
+  with connection status + `last_error`. Read-only. (2026-07-28)
+- [x] **Settings page + write API** (`GET`/`PUT /api/v1/settings`): default poll
+  interval, debug, listen address. Atomic `config.json` writes; poll loop live-
+  reloads settings each tick (interval + debug apply live; listen addr on
+  restart). Changing the listen port pre-flight-checks it's bindable and rejects
+  (409, not saved) if it's already in use. (2026-07-28)
+
+Remaining:
+- **Device management** (write API `POST`/`PUT`/`DELETE /api/v1/devices` + UI):
+  add/edit/remove devices (name, profile, unit id, serial params). Includes the
+  **live device reconcile** in the poll loop (add/drop/rebuild buses on config
+  change — deferred from the settings slice).
+- **Per-device poll interval + per-bus scheduler.** Global setting is the
+  *default*; add an optional per-device `poll_interval_seconds` override. Replace
+  the single global ticker with a per-bus scheduler (each device has a next-due
+  time; independent ports schedule independently and could poll concurrently,
+  shared multidrop ports serialize on the existing bus mutex). Lands with device
+  management (where the per-device field's UI lives). Works for both topologies:
+  one-adapter-per-device (star) and shared multidrop bus.
 - **Wire the category templates (`templates/`) into a guided mapping flow:** pick
   a category -> template scaffold -> assign register addresses/comms -> save as a
   profile.

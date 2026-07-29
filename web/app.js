@@ -74,16 +74,5 @@ async function refresh() {
   }
 }
 
-// Settings is not built yet — placeholder toast so the nav has its shape.
-const toast = document.getElementById("toast");
-let toastTimer;
-document.querySelector('[data-nav="settings"]').addEventListener("click", (e) => {
-  e.preventDefault();
-  toast.textContent = "Settings — coming soon";
-  toast.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toast.hidden = true; }, 2200);
-});
-
 refresh();
 setInterval(refresh, REFRESH_MS);
