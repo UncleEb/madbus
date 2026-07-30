@@ -5,3 +5,4 @@
 config.local.json
 last_seen.json
 .claude/
+.pi-target

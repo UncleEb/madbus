@@ -97,22 +97,26 @@ Done so far:
   reloads settings each tick (interval + debug apply live; listen addr on
   restart). Changing the listen port pre-flight-checks it's bindable and rejects
   (409, not saved) if it's already in use. (2026-07-28)
+- [x] **Device management** — engine (`poller.go`: live reconcile, per-bus
+  scheduler, per-device `poll_interval_seconds`), CRUD API (`POST`/`PUT`/`DELETE
+  /api/v1/devices`, `GET /api/v1/profiles`, validation), and home-screen UI
+  (+ Add device, edit/delete, form dialog). (2026-07-29)
+- [x] **Hardware Interface discovery** (`GET /api/v1/serial-ports`, sysfs USB
+  descriptions) — dropdown of detected USB-serial bridge adapters (ttyUSB, with
+  descriptions like "FTDI USB-RS485-WE"); CDC/ttyACM devices (Z-Wave sticks etc.)
+  filtered out; Mock option; Rescan; saved-but-unplugged port preserved. (2026-07-29)
 
-Remaining:
-- **Device management** (write API `POST`/`PUT`/`DELETE /api/v1/devices` + UI):
-  add/edit/remove devices (name, profile, unit id, serial params). Includes the
-  **live device reconcile** in the poll loop (add/drop/rebuild buses on config
-  change — deferred from the settings slice).
-- **Per-device poll interval + per-bus scheduler.** Global setting is the
-  *default*; add an optional per-device `poll_interval_seconds` override. Replace
-  the single global ticker with a per-bus scheduler (each device has a next-due
-  time; independent ports schedule independently and could poll concurrently,
-  shared multidrop ports serialize on the existing bus mutex). Lands with device
-  management (where the per-device field's UI lives). Works for both topologies:
-  one-adapter-per-device (star) and shared multidrop bus.
+Remaining (next session — Levi's priorities):
+- **Clean up label spacing on the Add/Edit Device form** (the dialog in
+  `web/index.html` / `web/style.css`).
+- **Device value mapping page** — a UI to map an individual device's registers to
+  normalized metric keys (i.e. author/edit a profile from the web UI). This is the
+  guided mapping flow below.
+
+Remaining (rest):
 - **Wire the category templates (`templates/`) into a guided mapping flow:** pick
   a category -> template scaffold -> assign register addresses/comms -> save as a
-  profile.
+  profile. (This is the "device value mapping page" above.)
 - **Test the template -> real-profile mapping flow against MORE devices.** So far
   only the meter has been mapped and verified against hardware. The mapping UX
   and the non-numeric value kinds (enum / bool / bitflags / array) need exercising

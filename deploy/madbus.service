@@ -1,0 +1,22 @@
+# Madbus systemd service (Raspberry Pi / Linux appliance).
+#
+# Install on the Pi (adjust User/paths if your layout differs):
+#   sudo cp deploy/madbus.service /etc/systemd/system/madbus.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now madbus
+#
+# Then deploy new builds with scripts/deploy-pi.sh (it restarts this service).
+[Unit]
+Description=Madbus telemetry normalizer
+After=network.target
+
+[Service]
+Type=simple
+User=madbus
+WorkingDirectory=/home/madbus/madbus
+ExecStart=/home/madbus/madbus/madbus -config /home/madbus/madbus/config.json
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
