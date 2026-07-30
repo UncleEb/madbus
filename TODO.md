@@ -123,3 +123,20 @@ Remaining (rest):
   against real charge controllers / shunts / BMSs / inverters as they're acquired.
 - Surface device read/permission errors prominently in the UI (ties into the
   dialout item above).
+
+## Distribution / packaging — Docker (later, not yet)
+
+Docker is the long-term target for Levi's garage unit and the README's
+recommended deploy. **Hold until the feature set (web UI, mapping) stabilizes** —
+systemd-on-Pi (`deploy/madbus.service` + `scripts/deploy-pi.sh`) is the right
+runtime meanwhile.
+
+Groundwork is already done: single static CGO-free binary, cross-compiles to
+arm64, embedded web UI, file config, no DB → the image is nearly trivial
+(distroless/scratch base + binary + a `/data` volume for `config.json` +
+`profiles/` + `last_seen.json`). Mirror Sola's ~13 MB distroless, non-root image.
+
+The one wrinkle vs. a normal web app: **serial passthrough** — the container
+needs `--device=/dev/ttyUSB0` (or the bus) AND the container user's GID to match
+the host `dialout` GID (see the dialout item / serial-access-friction). Publish
+`:8090`. Multi-arch build (arm64 for the Pi) like Sola's buildx flow.
